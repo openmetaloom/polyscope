@@ -9,16 +9,5 @@
       "src": "/(.*)",
       "dest": "/packages/ui/index.html"
     }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=30, stale-while-revalidate=60"
-        }
-      ]
-    }
   ]
 }
