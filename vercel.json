@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "polyscope",
   "builds": [
     {
       "src": "packages/api/server.js",
@@ -14,23 +13,16 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/packages/api/server.js"
+      "source": "/api/(.*)",
+      "destination": "/packages/api/server.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/packages/ui/dist/$1"
+      "source": "/(.*)",
+      "destination": "/packages/ui/dist/$1"
     }
   ],
-  "env": {
-    "BANKR_API_KEY": "@bankr-api-key",
-    "API_KEYS": "@api-keys",
-    "ADMIN_API_KEY": "@admin-api-key",
-    "NODE_ENV": "production",
-    "CORS_ORIGIN": "@cors-origin"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
