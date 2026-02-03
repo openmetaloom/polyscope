@@ -1,16 +1,102 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/polymarket-icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PolyScope</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyScope - Polymarket Portfolio Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; }
+        .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; }
+        .btn-primary { background: #00d084; color: #000; }
+        .btn-primary:hover { background: #00e090; }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function App() {
+            const [address, setAddress] = useState('');
+            const [portfolio, setPortfolio] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            
+            const loadPortfolio = async () => {
+                if (!address) return;
+                setLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch(`/api/v1/portfolio/${address}`);
+                    if (!response.ok) throw new Error('Failed to load portfolio');
+                    const data = await response.json();
+                    setPortfolio(data);
+                } catch (err) {
+                    setError(err.message);
+                }
+                setLoading(false);
+            };
+            
+            return (
+                <div className="min-h-screen p-8">
+                    <header className="mb-8">
+                        <h1 className="text-4xl font-bold mb-2">PolyScope</h1>
+                        <p className="text-gray-400">Polymarket Portfolio Tracker</p>
+                    </header>
+                    
+                    <div className="card p-6 mb-8">
+                        <label className="block text-sm text-gray-400 mb-2">Ethereum Address or ENS</label>
+                        <div className="flex gap-4">
+                            <input 
+                                type="text" 
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="0x... or vitalik.eth"
+                                className="flex-1 bg-black border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500"
+                            />
+                            <button 
+                                onClick={loadPortfolio}
+                                disabled={loading}
+                                className="btn-primary px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
+                            >
+                                {loading ? 'Loading...' : 'Load'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {error && (
+                        <div className="card p-4 mb-8 border-red-500">
+                            <p className="text-red-400">{error}</p>
+                        </div>
+                    )}
+                    
+                    {portfolio && (
+                        <div className="card p-6">
+                            <h2 className="text-2xl font-bold mb-4">Portfolio Summary</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-gray-400 text-sm">Total Value</p>
+                                    <p className="text-3xl font-bold">${portfolio.totalValue?.toFixed(2) || '0.00'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 text-sm">Polymarket Investment</p>
+                                    <p className="text-3xl font-bold">${portfolio.polymarketInvested?.toFixed(2) || '0.00'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>

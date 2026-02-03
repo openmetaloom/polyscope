@@ -1,22 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "cd packages/ui && npm run build",
-  "outputDirectory": "packages/ui/dist",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "packages/api/server.js"
-    }
-  ],
-  "headers": [
+      "src": "/api/(.*)",
+      "dest": "/packages/api/server.js"
+    },
     {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
+      "src": "/(.*)",
+      "dest": "/packages/ui/index.html"
     }
   ]
 }
