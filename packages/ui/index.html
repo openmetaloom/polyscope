@@ -2,651 +2,271 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PolyScope - Polymarket Portfolio Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PolyScope</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; }
         .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; }
-        .btn-primary { background: #00d084; color: #000; }
+        .btn-primary { background: #00d084; color: #000; font-weight: 600; }
         .btn-primary:hover { background: #00e090; }
-        .tab-active { border-bottom: 2px solid #00d084; color: #00d084; }
         .positive { color: #00d084; }
         .negative { color: #ff4444; }
-        .market-link { 
-            color: #fff; 
-            text-decoration: none; 
-            border-bottom: 1px dotted #00d084;
-            transition: all 0.2s;
-        }
-        .market-link:hover { 
-            color: #00d084; 
-            border-bottom: 1px solid #00d084;
-        }
-        .news-relevant { 
-            border-left: 3px solid #00d084; 
-            padding-left: 12px;
-            background: rgba(0, 208, 132, 0.05);
-        }
-        .news-irrelevant {
-            opacity: 0.7;
-        }
-        .ens-badge {
-            background: #3b82f6;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-left: 8px;
-        }
-        .chain-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .chain-eth { background: #627eea20; color: #627eea; border: 1px solid #627eea40; }
-        .chain-base { background: #0052ff20; color: #0052ff; border: 1px solid #0052ff40; }
-        .chain-polygon { background: #8247e520; color: #8247e5; border: 1px solid #8247e540; }
+        .market-link { color: #00d084; text-decoration: none; }
+        .market-link:hover { text-decoration: underline; }
+        .tab-active { border-bottom: 2px solid #00d084; color: #00d084; }
+        input:focus { outline: none; border-color: #00d084; }
     </style>
 </head>
-<body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } = Recharts;
+<body class="min-h-screen">
+    <div id="app">
+        <header class="border-b border-gray-800 p-4">
+            <h1 class="text-2xl font-bold">PolyScope</h1>
+            <p class="text-gray-400 text-sm">Polymarket Portfolio</p>
+        </header>
         
-        function App() {
-            const [inputValue, setInputValue] = useState('');
-            const [resolvedAddress, setResolvedAddress] = useState(null);
-            const [ensName, setEnsName] = useState(null);
-            const [activeTab, setActiveTab] = useState('portfolio');
-            const [portfolio, setPortfolio] = useState(null);
-            const [markets, setMarkets] = useState([]);
-            const [news, setNews] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const [error, setError] = useState(null);
-            const [resolvingENS, setResolvingENS] = useState(false);
-            const [showMultiChain, setShowMultiChain] = useState(true);
+        <main class="p-4 max-w-lg mx-auto">
+            <div class="card p-4 mb-4">
+                <input type="text" id="addressInput" placeholder="0x... or vitalik.eth" 
+                    class="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white mb-3">
+                <button onclick="loadPortfolio()" class="btn-primary w-full py-3 rounded-lg">Load Portfolio</button>
+            </div>
             
-            // ENS Resolution
-            const resolveENS = async (name) => {
-                if (!name) return null;
-                
-                // Check if already an address
-                if (name.match(/^0x[a-fA-F0-9]{40}$/)) {
-                    return { address: name.toLowerCase(), ens: null, resolved: false };
-                }
-                
-                // Check if it looks like an ENS name
-                if (!name.includes('.') && !name.match(/^0x/)) {
-                    name = name + '.eth';
-                }
-                
-                try {
-                    setResolvingENS(true);
-                    const response = await fetch(`/api/v1/resolve/${name}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data;
-                    }
-                } catch (err) {
-                    console.error('ENS resolution failed:', err);
-                } finally {
-                    setResolvingENS(false);
-                }
-                return null;
-            };
+            <div id="loading" class="hidden text-center py-8">
+                <p class="text-gray-400">Loading...</p>
+            </div>
             
-            // Debounced ENS resolution for input
-            useEffect(() => {
-                const timer = setTimeout(async () => {
-                    if (inputValue && !inputValue.match(/^0x[a-fA-F0-9]{40}$/)) {
-                        const resolved = await resolveENS(inputValue);
-                        if (resolved) {
-                            setResolvedAddress(resolved.address);
-                            setEnsName(resolved.ens || inputValue);
-                        }
-                    } else if (inputValue) {
-                        setResolvedAddress(inputValue.toLowerCase());
-                        setEnsName(null);
-                    } else {
-                        setResolvedAddress(null);
-                        setEnsName(null);
-                    }
-                }, 500);
-                
-                return () => clearTimeout(timer);
-            }, [inputValue]);
+            <div id="error" class="hidden card p-4 mb-4 border-red-500">
+                <p class="text-red-400" id="errorText"></p>
+            </div>
             
-            const loadPortfolio = async () => {
-                if (!resolvedAddress) return;
-                setLoading(true);
-                setError(null);
-                try {
-                    const response = await fetch(`/api/v1/portfolio/${resolvedAddress}?multichain=${showMultiChain}`);
-                    if (!response.ok) throw new Error('Failed to load portfolio');
-                    const data = await response.json();
-                    setPortfolio(data);
-                } catch (err) {
-                    setError(err.message);
-                }
-                setLoading(false);
-            };
-            
-            const loadMarkets = async () => {
-                setLoading(true);
-                try {
-                    const response = await fetch('/api/v1/markets');
-                    if (response.ok) {
-                        const data = await response.json();
-                        setMarkets(data.markets || []);
-                    }
-                } catch (err) {
-                    console.error('Failed to load markets:', err);
-                }
-                setLoading(false);
-            };
-            
-            const loadNews = async (keywords = null) => {
-                setLoading(true);
-                try {
-                    let url = '/api/v1/news';
-                    if (keywords && keywords.length > 0) {
-                        url += `?keywords=${keywords.join(',')}`;
-                    }
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setNews(data.news || []);
-                    }
-                } catch (err) {
-                    console.error('Failed to load news:', err);
-                }
-                setLoading(false);
-            };
-            
-            // Get unique keywords from positions for news filtering
-            const positionKeywords = useMemo(() => {
-                if (!portfolio?.positions) return [];
-                const allKeywords = portfolio.positions.flatMap(p => p.keywords || []);
-                return [...new Set(allKeywords)];
-            }, [portfolio]);
-            
-            useEffect(() => {
-                if (activeTab === 'markets') loadMarkets();
-                if (activeTab === 'news') loadNews(positionKeywords);
-            }, [activeTab, portfolio]);
-            
-            // Generate sample portfolio history data
-            const portfolioHistory = useMemo(() => {
-                if (!portfolio) return [];
-                const data = [];
-                const baseValue = portfolio.totalValue * 0.7; // Start from lower value
-                const now = new Date();
-                
-                for (let i = 30; i >= 0; i--) {
-                    const date = new Date(now);
-                    date.setDate(date.getDate() - i);
-                    const progress = (30 - i) / 30;
-                    const randomVariation = (Math.random() - 0.5) * 0.1;
-                    const value = baseValue + (portfolio.totalValue - baseValue) * progress * (1 + randomVariation);
-                    
-                    data.push({
-                        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        value: Math.round(value * 100) / 100,
-                        invested: portfolio.polymarketInvested * progress
-                    });
-                }
-                return data;
-            }, [portfolio]);
-            
-            const formatCurrency = (val) => {
-                if (val === undefined || val === null) return '$0.00';
-                return new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD'
-                }).format(val);
-            };
-            
-            const formatPercent = (val) => {
-                if (val === undefined || val === null) return '0.00%';
-                const sign = val >= 0 ? '+' : '';
-                return `${sign}${val.toFixed(2)}%`;
-            };
-            
-            const formatCrypto = (val, symbol = 'ETH') => {
-                if (val === undefined || val === null) return `0 ${symbol}`;
-                return `${val.toFixed(4)} ${symbol}`;
-            };
-            
-            const getPolymarketUrl = (slug) => {
-                if (!slug) return null;
-                return `https://polymarket.com/event/${slug}`;
-            };
-            
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter') {
-                    loadPortfolio();
-                }
-            };
-            
-            return (
-                <div className="min-h-screen">
-                    {/* Header */}
-                    <header className="border-b border-gray-800 p-6">
-                        <div className="max-w-6xl mx-auto">
-                            <h1 className="text-3xl font-bold mb-1">PolyScope</h1>
-                            <p className="text-gray-400 text-sm">Polymarket Portfolio Tracker</p>
-                        </div>
-                    </header>
-                    
-                    <main className="max-w-6xl mx-auto p-6">
-                        {/* Address Input */}
-                        <div className="card p-6 mb-6">
-                            <label className="block text-sm text-gray-400 mb-2">
-                                Ethereum Address or ENS
-                                {resolvingENS && <span className="ml-2 text-xs text-blue-400">Resolving...</span>}
-                            </label>
-                            <div className="flex gap-4">
-                                <div className="flex-1 relative">
-                                    <input 
-                                        type="text" 
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="0x... or vitalik.eth"
-                                        className="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500"
-                                    />
-                                    {resolvedAddress && (
-                                        <div className="absolute right-3 top-3 text-xs text-gray-400">
-                                            {ensName && <span className="ens-badge">{ensName}</span>}
-                                            <span className="ml-2 font-mono">{resolvedAddress.slice(0, 6)}...{resolvedAddress.slice(-4)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <button 
-                                    onClick={loadPortfolio}
-                                    disabled={loading || !resolvedAddress}
-                                    className="btn-primary px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
-                                >
-                                    {loading ? 'Loading...' : 'Load'}
-                                </button>
-                            </div>
-                            {resolvedAddress && ensName && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Resolved {ensName} → {resolvedAddress}
-                                </p>
-                            )}
-                        </div>
-                        
-                        {error && (
-                            <div className="card p-4 mb-6 border-red-500">
-                                <p className="text-red-400">{error}</p>
-                            </div>
-                        )}
-                        
-                        {portfolio && (
-                            <>
-                                {/* Tabs */}
-                                <div className="flex gap-6 border-b border-gray-800 mb-6">
-                                    {['portfolio', 'positions', 'markets', 'news'].map(tab => (
-                                        <button
-                                            key={tab}
-                                            onClick={() => setActiveTab(tab)}
-                                            className={`pb-3 px-2 capitalize font-medium transition-colors ${
-                                                activeTab === tab ? 'tab-active' : 'text-gray-400 hover:text-white'
-                                            }`}
-                                        >
-                                            {tab}
-                                        </button>
-                                    ))}
-                                </div>
-                                
-                                {/* Portfolio Tab */}
-                                {activeTab === 'portfolio' && (
-                                    <div className="space-y-6">
-                                        {/* Summary Cards */}
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <div className="card p-4">
-                                                <p className="text-gray-400 text-sm mb-1">Total Portfolio</p>
-                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.totalValue)}</p>
-                                                {portfolio.chainBreakdown && (
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        Spot: {formatCurrency(portfolio.spotValue)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="card p-4">
-                                                <p className="text-gray-400 text-sm mb-1">Polymarket Value</p>
-                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.polymarketValue)}</p>
-                                            </div>
-                                            <div className="card p-4">
-                                                <p className="text-gray-400 text-sm mb-1">Invested</p>
-                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.polymarketInvested)}</p>
-                                            </div>
-                                            <div className="card p-4">
-                                                <p className="text-gray-400 text-sm mb-1">P&L</p>
-                                                <p className={`text-2xl font-bold ${portfolio.pnl >= 0 ? 'positive' : 'negative'}`}>
-                                                    {formatCurrency(portfolio.pnl)}
-                                                </p>
-                                                <p className={`text-sm ${portfolio.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
-                                                    {formatPercent(portfolio.pnlPercent)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Multi-Chain Breakdown */}
-                                        {portfolio.chainBreakdown && (
-                                            <div className="card p-6">
-                                                <h2 className="text-xl font-bold mb-4">Multi-Chain Holdings</h2>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <div className="bg-black rounded-lg p-4 border border-gray-800">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="chain-badge chain-eth">
-                                                                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 12.5L12 16L20 12.5L12 2Z"/><path d="M12 16L4 12.5L12 22L20 12.5L12 16Z"/></svg>
-                                                                Ethereum
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xl font-bold">{formatCrypto(portfolio.chainBreakdown.ethereum.native)}</p>
-                                                        <p className="text-sm text-gray-400">{formatCurrency(portfolio.chainBreakdown.ethereum.valueUSD)}</p>
-                                                    </div>
-                                                    <div className="bg-black rounded-lg p-4 border border-gray-800">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="chain-badge chain-base">
-                                                                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                                                                Base
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xl font-bold">{formatCrypto(portfolio.chainBreakdown.base.native)}</p>
-                                                        <p className="text-sm text-gray-400">{formatCurrency(portfolio.chainBreakdown.base.valueUSD)}</p>
-                                                    </div>
-                                                    <div className="bg-black rounded-lg p-4 border border-gray-800">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="chain-badge chain-polygon">
-                                                                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L3 7.5V16.5L12 22L21 16.5V7.5L12 2Z"/></svg>
-                                                                Polygon
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xl font-bold">{formatCrypto(portfolio.chainBreakdown.polygon.native, 'MATIC')}</p>
-                                                        <p className="text-sm text-gray-400">{formatCurrency(portfolio.chainBreakdown.polygon.valueUSD)}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        
-                                        {/* Portfolio History Chart */}
-                                        {portfolioHistory.length > 0 && (
-                                            <div className="card p-6">
-                                                <h2 className="text-xl font-bold mb-4">Portfolio Value (30 Days)</h2>
-                                                <div className="h-64">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <AreaChart data={portfolioHistory}>
-                                                            <defs>
-                                                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                                                    <stop offset="5%" stopColor="#00d084" stopOpacity={0.3}/>
-                                                                    <stop offset="95%" stopColor="#00d084" stopOpacity={0}/>
-                                                                </linearGradient>
-                                                            </defs>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                                                            <XAxis dataKey="date" stroke="#666" fontSize={12} tickLine={false} />
-                                                            <YAxis stroke="#666" fontSize={12} tickLine={false} tickFormatter={(val) => `$${val}`} />
-                                                            <Tooltip 
-                                                                contentStyle={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                                                                formatter={(value) => [formatCurrency(value), 'Value']}
-                                                            />
-                                                            <Area type="monotone" dataKey="value" stroke="#00d084" fillOpacity={1} fill="url(#colorValue)" />
-                                                        </AreaChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        )}
-                                        
-                                        {/* Positions List */}
-                                        <div className="card p-6">
-                                            <h2 className="text-xl font-bold mb-4">Active Positions</h2>
-                                            <div className="space-y-4">
-                                                {portfolio.positions?.map((pos, idx) => (
-                                                    <div key={idx} className="border-b border-gray-800 pb-4 last:border-0">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <h3 className="font-medium text-lg">
-                                                                {pos.marketSlug ? (
-                                                                    <a 
-                                                                        href={getPolymarketUrl(pos.marketSlug)}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="market-link"
-                                                                    >
-                                                                        {pos.title}
-                                                                        <svg className="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                        </svg>
-                                                                    </a>
-                                                                ) : (
-                                                                    pos.title
-                                                                )}
-                                                            </h3>
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                                                pos.position === 'Yes' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
-                                                            }`}>
-                                                                {pos.position}
-                                                            </span>
-                                                        </div>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                                            <div>
-                                                                <p className="text-gray-400">Entry Price</p>
-                                                                <p className="font-medium">{(pos.entryPrice * 100).toFixed(1)}¢</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-gray-400">Current</p>
-                                                                <p className="font-medium">{(pos.currentPrice * 100).toFixed(1)}¢</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-gray-400">P&L</p>
-                                                                <p className={`font-medium ${pos.pnl >= 0 ? 'positive' : 'negative'}`}>
-                                                                    {formatCurrency(pos.pnl)}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-gray-400">Return</p>
-                                                                <p className={`font-medium ${pos.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
-                                                                    {formatPercent(pos.pnlPercent)}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                {/* Positions Tab */}
-                                {activeTab === 'positions' && (
-                                    <div className="card p-6">
-                                        <h2 className="text-xl font-bold mb-4">All Positions</h2>
-                                        <div className="space-y-4">
-                                            {portfolio.positions?.map((pos, idx) => (
-                                                <div key={idx} className="border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors">
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <h3 className="font-medium">
-                                                            {pos.marketSlug ? (
-                                                                <a 
-                                                                    href={getPolymarketUrl(pos.marketSlug)}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="market-link"
-                                                                >
-                                                                    {pos.title}
-                                                                    <svg className="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                    </svg>
-                                                                </a>
-                                                            ) : (
-                                                                pos.title
-                                                            )}
-                                                        </h3>
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                                            pos.position === 'Yes' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
-                                                        }`}>
-                                                            {pos.position}
-                                                        </span>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                                        <div>
-                                                            <p className="text-gray-400">Entry</p>
-                                                            <p className="font-medium">{(pos.entryPrice * 100).toFixed(1)}¢</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-gray-400">Current</p>
-                                                            <p className="font-medium">{(pos.currentPrice * 100).toFixed(1)}¢</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-gray-400">P&L</p>
-                                                            <p className={`font-medium ${pos.pnl >= 0 ? 'positive' : 'negative'}`}>
-                                                                {formatCurrency(pos.pnl)}
-                                                            </p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-gray-400">Return</p>
-                                                            <p className={`font-medium ${pos.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
-                                                                {formatPercent(pos.pnlPercent)}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                {/* Markets Tab */}
-                                {activeTab === 'markets' && (
-                                    <div className="card p-6">
-                                        <h2 className="text-xl font-bold mb-4">Markets</h2>
-                                        {markets.length > 0 ? (
-                                            <div className="space-y-4">
-                                                {markets.map((market, idx) => (
-                                                    <div key={idx} className="border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors group">
-                                                        <h3 className="font-medium mb-2">
-                                                            {market.slug ? (
-                                                                <a 
-                                                                    href={getPolymarketUrl(market.slug)}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="market-link group-hover:text-green-400"
-                                                                >
-                                                                    {market.question}
-                                                                    <svg className="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                    </svg>
-                                                                </a>
-                                                            ) : (
-                                                                market.question
-                                                            )}
-                                                        </h3>
-                                                        <div className="flex gap-6 text-sm">
-                                                            <span className="text-gray-400">Volume: {formatCurrency(market.volume)}</span>
-                                                            <span className="text-gray-400">Liquidity: {formatCurrency(market.liquidity)}</span>
-                                                            <span className="flex gap-2">
-                                                                <span className="text-green-400">Yes: {(market.yesPrice * 100).toFixed(1)}¢</span>
-                                                                <span className="text-red-400">No: {(market.noPrice * 100).toFixed(1)}¢</span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400">No markets data available</p>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {/* News Tab */}
-                                {activeTab === 'news' && (
-                                    <div className="card p-6">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h2 className="text-xl font-bold">Latest News</h2>
-                                            {positionKeywords.length > 0 && (
-                                                <div className="text-sm text-gray-400">
-                                                    Filtered by: {positionKeywords.join(', ')}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {news.length > 0 ? (
-                                            <div className="space-y-4">
-                                                {news.map((item, idx) => (
-                                                    <div 
-                                                        key={idx} 
-                                                        className={`pb-4 last:border-0 ${
-                                                            item.isRelevant ? 'news-relevant' : 'news-irrelevant'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-start justify-between">
-                                                            <h3 className="font-medium mb-1">
-                                                                {item.isRelevant && (
-                                                                    <span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                                                                )}
-                                                                {item.title}
-                                                            </h3>
-                                                            {item.isRelevant && (
-                                                                <span className="text-xs bg-green-900 text-green-400 px-2 py-1 rounded ml-2 whitespace-nowrap">Relevant</span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-sm text-gray-400 mb-2">{item.source} • {new Date(item.published).toLocaleDateString()}</p>
-                                                        {item.signals && item.signals.length > 0 && (
-                                                            <div className="flex gap-2">
-                                                                {item.signals.map((signal, sidx) => (
-                                                                    <span key={sidx} className={`text-xs px-2 py-1 rounded ${
-                                                                        signal.type === 'positive' ? 'bg-green-900 text-green-400' : 
-                                                                        signal.type === 'negative' ? 'bg-red-900 text-red-400' :
-                                                                        'bg-gray-800 text-gray-400'
-                                                                    }`}>
-                                                                        {signal.text}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400">No news data available</p>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        
-                        {!portfolio && !loading && !error && (
-                            <div className="card p-12 text-center">
-                                <p className="text-gray-400 text-lg">Enter an Ethereum address or ENS name to view portfolio</p>
-                                <p className="text-gray-600 text-sm mt-2">Example: 0xa7d395faf5e0a77a8d42d68ea01d2336671e5f55 or vitalik.eth</p>
-                            </div>
-                        )}
-                    </main>
-                    
-                    {/* Footer */}
-                    <footer className="border-t border-gray-800 p-6 mt-12">
-                        <div className="max-w-6xl mx-auto text-center text-gray-600 text-sm">
-                            <p>PolyScope - Polymarket Portfolio Tracker</p>
-                            <p className="mt-1">Data provided by Polymarket API</p>
-                        </div>
-                    </footer>
+            <div id="content" class="hidden">
+                <div class="flex gap-4 mb-4 overflow-x-auto pb-2">
+                    <button onclick="showTab('portfolio')" id="tab-portfolio" class="tab-active pb-2 whitespace-nowrap">Portfolio</button>
+                    <button onclick="showTab('positions')" id="tab-positions" class="text-gray-400 pb-2 whitespace-nowrap">Positions</button>
+                    <button onclick="showTab('markets')" id="tab-markets" class="text-gray-400 pb-2 whitespace-nowrap">Markets</button>
+                    <button onclick="showTab('news')" id="tab-news" class="text-gray-400 pb-2 whitespace-nowrap">News</button>
                 </div>
-            );
+                
+                <div id="portfolio-tab"></div>
+                <div id="positions-tab" class="hidden"></div>
+                <div id="markets-tab" class="hidden"></div>
+                <div id="news-tab" class="hidden"></div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let portfolioData = null;
+        let marketsData = [];
+        let newsData = [];
+        
+        async function resolveENS(name) {
+            if (!name.includes('.') && !name.startsWith('0x')) {
+                name = name + '.eth';
+            }
+            if (!name.includes('.')) return name;
+            
+            try {
+                const res = await fetch('/api/v1/resolve/' + name);
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.address || name;
+                }
+            } catch (e) {}
+            return name;
         }
         
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        async function loadPortfolio() {
+            const input = document.getElementById('addressInput').value.trim();
+            if (!input) return;
+            
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('content').classList.add('hidden');
+            
+            try {
+                const address = await resolveENS(input);
+                const res = await fetch('/api/v1/portfolio/' + address);
+                
+                if (!res.ok) throw new Error('Failed to load');
+                
+                portfolioData = await res.json();
+                await loadMarkets();
+                await loadNews();
+                
+                renderPortfolio();
+                renderPositions();
+                renderMarkets();
+                renderNews();
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('content').classList.remove('hidden');
+                showTab('portfolio');
+            } catch (err) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('errorText').textContent = err.message;
+                document.getElementById('error').classList.remove('hidden');
+            }
+        }
+        
+        async function loadMarkets() {
+            try {
+                const res = await fetch('/api/v1/markets');
+                if (res.ok) marketsData = (await res.json()).markets || [];
+            } catch (e) {}
+        }
+        
+        async function loadNews() {
+            try {
+                const res = await fetch('/api/v1/news');
+                if (res.ok) newsData = (await res.json()).news || [];
+            } catch (e) {}
+        }
+        
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(val);
+        }
+        
+        function renderPortfolio() {
+            const p = portfolioData;
+            const pnlClass = p.pnl >= 0 ? 'positive' : 'negative';
+            
+            document.getElementById('portfolio-tab').innerHTML = \`
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="card p-3">
+                        <p class="text-gray-400 text-xs">Total</p>
+                        <p class="text-xl font-bold">\${formatCurrency(p.totalValue)}</p>
+                    </div>
+                    <div class="card p-3">
+                        <p class="text-gray-400 text-xs">Polymarket</p>
+                        <p class="text-xl font-bold">\${formatCurrency(p.polymarketValue)}</p>
+                    </div>
+                    <div class="card p-3">
+                        <p class="text-gray-400 text-xs">Invested</p>
+                        <p class="text-xl font-bold">\${formatCurrency(p.polymarketInvested)}</p>
+                    </div>
+                    <div class="card p-3">
+                        <p class="text-gray-400 text-xs">P&L</p>
+                        <p class="text-xl font-bold \${pnlClass}">\${formatCurrency(p.pnl)}</p>
+                        <p class="text-sm \${pnlClass}">\${p.pnlPercent.toFixed(1)}%</p>
+                    </div>
+                </div>
+                <div class="card p-4">
+                    <h3 class="font-bold mb-3">Positions</h3>
+                    <div class="space-y-3">
+                        \${p.positions.map(pos => \`
+                            <div class="border-b border-gray-800 pb-3 last:border-0">
+                                <a href="https://polymarket.com/event/\${pos.slug || ''}" target="_blank" class="market-link font-medium block mb-1">
+                                    \${pos.title}
+                                </a>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">\${pos.position}</span>
+                                    <span class="\${pos.pnl >= 0 ? 'positive' : 'negative'}">
+                                        \${formatCurrency(pos.pnl)}
+                                    </span>
+                                </div>
+                            </div>
+                        \`).join('')}
+                    </div>
+                </div>
+            \`;
+        }
+        
+        function renderPositions() {
+            if (!portfolioData) return;
+            document.getElementById('positions-tab').innerHTML = \`
+                <div class="card p-4 space-y-4">
+                    \${portfolioData.positions.map(pos => \`
+                        <div class="border-b border-gray-800 pb-4 last:border-0">
+                            <a href="https://polymarket.com/event/\${pos.slug || ''}" target="_blank" class="market-link font-medium block mb-2">
+                                \${pos.title}
+                            </a>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div><span class="text-gray-400">Position:</span> \${pos.position}</div>
+                                <div><span class="text-gray-400">Entry:</span> \${(pos.entryPrice * 100).toFixed(1)}¢</div>
+                                <div><span class="text-gray-400">Current:</span> \${(pos.currentPrice * 100).toFixed(1)}¢</div>
+                                <div class="\${pos.pnl >= 0 ? 'positive' : 'negative'}">
+                                    <span class="text-gray-400">P&L:</span> \${formatCurrency(pos.pnl)}
+                                </div>
+                            </div>
+                        </div>
+                    \`).join('')}
+                </div>
+            \`;
+        }
+        
+        function renderMarkets() {
+            document.getElementById('markets-tab').innerHTML = \`
+                <div class="card p-4 space-y-4">
+                    \${marketsData.map(m => \`
+                        <div class="border-b border-gray-800 pb-4 last:border-0">
+                            <p class="font-medium mb-2">\${m.question}</p>
+                            <div class="flex justify-between text-sm text-gray-400">
+                                <span>Vol: \${formatCurrency(m.volume)}</span>
+                                <span>Liq: \${formatCurrency(m.liquidity)}</span>
+                            </div>
+                            <div class="flex gap-4 mt-2 text-sm">
+                                <span class="positive">Yes: \${(m.yesPrice * 100).toFixed(1)}¢</span>
+                                <span class="negative">No: \${(m.noPrice * 100).toFixed(1)}¢</span>
+                            </div>
+                        </div>
+                    \`).join('')}
+                </div>
+            \`;
+        }
+        
+        function getRelevantNews() {
+            if (!portfolioData || !portfolioData.positions) return newsData;
+            
+            const keywords = [];
+            portfolioData.positions.forEach(p => {
+                const title = p.title.toLowerCase();
+                if (title.includes('trump')) keywords.push('trump');
+                if (title.includes('biden')) keywords.push('biden');
+                if (title.includes('google') || title.includes('ai')) keywords.push('ai');
+                if (title.includes('anthropic') || title.includes('claude')) keywords.push('ai');
+                if (title.includes('crypto') || title.includes('bitcoin')) keywords.push('crypto');
+            });
+            
+            return newsData.map(item => {
+                const title = item.title.toLowerCase();
+                const isRelevant = keywords.some(k => title.includes(k));
+                return {...item, isRelevant};
+            }).sort((a, b) => (b.isRelevant ? 1 : 0) - (a.isRelevant ? 1 : 0));
+        }
+        
+        function renderNews() {
+            const relevantNews = getRelevantNews();
+            document.getElementById('news-tab').innerHTML = \`
+                <div class="card p-4 space-y-4">
+                    \${relevantNews.map(item => \`
+                        <div class="\${item.isRelevant ? 'border-l-2 border-green-500 pl-3' : 'opacity-70'}">
+                            <p class="font-medium text-sm mb-1">\${item.title}</p>
+                            <p class="text-xs text-gray-400">\${item.source}</p>
+                            \${item.isRelevant ? '<span class="text-xs text-green-400">RELEVANT</span>' : ''}
+                        </div>
+                    \`).join('')}
+                </div>
+            \`;
+        }
+        
+        function showTab(tab) {
+            ['portfolio', 'positions', 'markets', 'news'].forEach(t => {
+                document.getElementById(t + '-tab').classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('tab-active');
+                document.getElementById('tab-' + t).classList.add('text-gray-400');
+            });
+            document.getElementById(tab + '-tab').classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+            document.getElementById('tab-' + tab).classList.remove('text-gray-400');
+        }
+        
+        // Allow Enter key
+        document.getElementById('addressInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadPortfolio();
+        });
     </script>
 </body>
 </html>
