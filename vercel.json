@@ -1,10 +1,13 @@
 {
   "version": 2,
-  "outputDirectory": "packages/ui/dist",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/packages/ui/index.html"
     }
   ],
   "headers": [
