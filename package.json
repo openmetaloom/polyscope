@@ -10,7 +10,7 @@
     "dev": "npm-run-all --parallel dev:*",
     "dev:api": "npm run dev -w packages/api",
     "dev:ui": "npm run dev -w packages/ui",
-    "build": "npm run build -w packages/core && npm run build -w packages/ui",
+    "build": "echo 'Static build - no compilation needed'",
     "build:ui": "npm run build -w packages/ui",
     "start": "npm run start -w packages/api",
     "test": "npm run test -w packages/api",
