@@ -1,26 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "packages/api/server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "packages/ui/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "buildCommand": "cd packages/ui && npm run build",
+  "outputDirectory": "packages/ui/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/packages/api/server.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/packages/ui/dist/$1"
+      "destination": "packages/api/server.js"
     }
   ],
   "headers": [
@@ -30,23 +15,6 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
         }
       ]
     }
