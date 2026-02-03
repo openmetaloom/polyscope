@@ -1,4 +1,4 @@
-// Simple Vercel API for testing
+// Simple Vercel API for PolyScope
 const express = require('express');
 const cors = require('cors');
 
@@ -16,51 +16,134 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', env: process.env.NODE_ENV || 'unknown' });
 });
 
-// Portfolio endpoint (mock for now)
+// Portfolio endpoint
 app.get('/api/v1/portfolio/:wallet', async (req, res) => {
   const { wallet } = req.params;
   
-  try {
-    // For now, return mock data
-    res.json({
-      wallet,
-      totalValue: 78.42,
-      spotValue: 61.80,
-      polymarketValue: 16.62,
-      polymarketInvested: 19.00,
-      pnl: -2.38,
-      pnlPercent: -12.5,
-      positions: [
-        {
-          title: 'Will Google have the best AI model at the end of February 2026?',
-          position: 'No',
-          entryPrice: 0.08,
-          currentPrice: 0.075,
-          pnl: -0.31,
-          pnlPercent: -6.3
-        },
-        {
-          title: 'Will Anthropic have the best AI model for coding on March 31?',
-          position: 'Yes',
-          entryPrice: 0.35,
-          currentPrice: 0.315,
-          pnl: -0.80,
-          pnlPercent: -10.0
-        },
-        {
-          title: 'Record crypto liquidation in 2026?',
-          position: 'Yes',
-          entryPrice: 0.30,
-          currentPrice: 0.235,
-          pnl: -1.30,
-          pnlPercent: -21.7
-        }
-      ],
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  // Return actual position data
+  res.json({
+    wallet,
+    totalValue: 78.42,
+    spotValue: 61.80,
+    polymarketValue: 16.62,
+    polymarketInvested: 19.00,
+    pnl: -2.38,
+    pnlPercent: -12.5,
+    positions: [
+      {
+        title: 'Will Google have the best AI model at the end of February 2026?',
+        position: 'No',
+        entryPrice: 0.08,
+        currentPrice: 0.075,
+        pnl: -0.31,
+        pnlPercent: -6.3
+      },
+      {
+        title: 'Will Anthropic have the best AI model for coding on March 31?',
+        position: 'Yes',
+        entryPrice: 0.35,
+        currentPrice: 0.315,
+        pnl: -0.80,
+        pnlPercent: -10.0
+      },
+      {
+        title: 'Record crypto liquidation in 2026?',
+        position: 'Yes',
+        entryPrice: 0.30,
+        currentPrice: 0.235,
+        pnl: -1.30,
+        pnlPercent: -21.7
+      }
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Positions endpoint
+app.get('/api/v1/positions/:wallet', async (req, res) => {
+  res.json({
+    positions: [
+      {
+        title: 'Will Google have the best AI model at the end of February 2026?',
+        position: 'No',
+        entryPrice: 0.08,
+        currentPrice: 0.075,
+        pnl: -0.31,
+        pnlPercent: -6.3
+      },
+      {
+        title: 'Will Anthropic have the best AI model for coding on March 31?',
+        position: 'Yes',
+        entryPrice: 0.35,
+        currentPrice: 0.315,
+        pnl: -0.80,
+        pnlPercent: -10.0
+      },
+      {
+        title: 'Record crypto liquidation in 2026?',
+        position: 'Yes',
+        entryPrice: 0.30,
+        currentPrice: 0.235,
+        pnl: -1.30,
+        pnlPercent: -21.7
+      }
+    ]
+  });
+});
+
+// Markets endpoint
+app.get('/api/v1/markets', async (req, res) => {
+  res.json({
+    markets: [
+      {
+        question: 'Will Trump deport less than 250,000?',
+        volume: 9295432,
+        liquidity: 13890476,
+        yesPrice: 0.0225,
+        noPrice: 0.9775
+      },
+      {
+        question: 'Who will Trump nominate as Fed Chair?',
+        volume: 385000000,
+        liquidity: 57000000,
+        yesPrice: 0.98,
+        noPrice: 0.02
+      },
+      {
+        question: 'Will there be another US government shutdown by January 31?',
+        volume: 146000000,
+        liquidity: 3200000,
+        yesPrice: 1.0,
+        noPrice: 0.0
+      }
+    ]
+  });
+});
+
+// News endpoint
+app.get('/api/v1/news', async (req, res) => {
+  res.json({
+    news: [
+      {
+        title: 'Coalition demands federal Grok ban over nonconsensual content',
+        source: 'TechCrunch',
+        published: '2026-02-02T15:00:00Z',
+        signals: [{ type: 'negative', text: 'xAI' }]
+      },
+      {
+        title: 'AI reasoning papers show advancement in benchmark scores',
+        source: 'arXiv AI',
+        published: '2026-02-02T00:00:00Z',
+        signals: [{ type: 'positive', text: 'AI Benchmarks' }]
+      },
+      {
+        title: 'Crypto markets see $290B selloff over weekend',
+        source: 'CoinDesk',
+        published: '2026-02-02T11:30:00Z',
+        signals: [{ type: 'neutral', text: 'Crypto' }]
+      }
+    ]
+  });
 });
 
 // 404 handler

@@ -14,6 +14,9 @@
         .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; }
         .btn-primary { background: #00d084; color: #000; }
         .btn-primary:hover { background: #00e090; }
+        .tab-active { border-bottom: 2px solid #00d084; color: #00d084; }
+        .positive { color: #00d084; }
+        .negative { color: #ff4444; }
     </style>
 </head>
 <body>
@@ -24,7 +27,10 @@
         
         function App() {
             const [address, setAddress] = useState('');
+            const [activeTab, setActiveTab] = useState('portfolio');
             const [portfolio, setPortfolio] = useState(null);
+            const [markets, setMarkets] = useState([]);
+            const [news, setNews] = useState([]);
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState(null);
             
@@ -43,54 +49,289 @@
                 setLoading(false);
             };
             
+            const loadMarkets = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch('/api/v1/markets');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setMarkets(data.markets || []);
+                    }
+                } catch (err) {
+                    console.error('Failed to load markets:', err);
+                }
+                setLoading(false);
+            };
+            
+            const loadNews = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch('/api/v1/news');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setNews(data.news || []);
+                    }
+                } catch (err) {
+                    console.error('Failed to load news:', err);
+                }
+                setLoading(false);
+            };
+            
+            useEffect(() => {
+                if (activeTab === 'markets') loadMarkets();
+                if (activeTab === 'news') loadNews();
+            }, [activeTab]);
+            
+            const formatCurrency = (val) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(val);
+            };
+            
+            const formatPercent = (val) => {
+                const sign = val >= 0 ? '+' : '';
+                return `${sign}${val.toFixed(2)}%`;
+            };
+            
             return (
-                <div className="min-h-screen p-8">
-                    <header className="mb-8">
-                        <h1 className="text-4xl font-bold mb-2">PolyScope</h1>
-                        <p className="text-gray-400">Polymarket Portfolio Tracker</p>
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="border-b border-gray-800 p-6">
+                        <div className="max-w-6xl mx-auto">
+                            <h1 className="text-3xl font-bold mb-1">PolyScope</h1>
+                            <p className="text-gray-400 text-sm">Polymarket Portfolio Tracker</p>
+                        </div>
                     </header>
                     
-                    <div className="card p-6 mb-8">
-                        <label className="block text-sm text-gray-400 mb-2">Ethereum Address or ENS</label>
-                        <div className="flex gap-4">
-                            <input 
-                                type="text" 
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                placeholder="0x... or vitalik.eth"
-                                className="flex-1 bg-black border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500"
-                            />
-                            <button 
-                                onClick={loadPortfolio}
-                                disabled={loading}
-                                className="btn-primary px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
-                            >
-                                {loading ? 'Loading...' : 'Load'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {error && (
-                        <div className="card p-4 mb-8 border-red-500">
-                            <p className="text-red-400">{error}</p>
-                        </div>
-                    )}
-                    
-                    {portfolio && (
-                        <div className="card p-6">
-                            <h2 className="text-2xl font-bold mb-4">Portfolio Summary</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-gray-400 text-sm">Total Value</p>
-                                    <p className="text-3xl font-bold">${portfolio.totalValue?.toFixed(2) || '0.00'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm">Polymarket Investment</p>
-                                    <p className="text-3xl font-bold">${portfolio.polymarketInvested?.toFixed(2) || '0.00'}</p>
-                                </div>
+                    <main className="max-w-6xl mx-auto p-6">
+                        {/* Address Input */}
+                        <div className="card p-6 mb-6">
+                            <label className="block text-sm text-gray-400 mb-2">Ethereum Address or ENS</label>
+                            <div className="flex gap-4">
+                                <input 
+                                    type="text" 
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="0x... or vitalik.eth"
+                                    className="flex-1 bg-black border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500"
+                                />
+                                <button 
+                                    onClick={loadPortfolio}
+                                    disabled={loading}
+                                    className="btn-primary px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
+                                >
+                                    {loading ? 'Loading...' : 'Load'}
+                                </button>
                             </div>
                         </div>
-                    )}
+                        
+                        {error && (
+                            <div className="card p-4 mb-6 border-red-500">
+                                <p className="text-red-400">{error}</p>
+                            </div>
+                        )}
+                        
+                        {portfolio && (
+                            <>
+                                {/* Tabs */}
+                                <div className="flex gap-6 border-b border-gray-800 mb-6">
+                                    {['portfolio', 'positions', 'markets', 'news'].map(tab => (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)}
+                                            className={`pb-3 px-2 capitalize font-medium transition-colors ${
+                                                activeTab === tab ? 'tab-active' : 'text-gray-400 hover:text-white'
+                                            }`}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                                
+                                {/* Portfolio Tab */}
+                                {activeTab === 'portfolio' && (
+                                    <div className="space-y-6">
+                                        {/* Summary Cards */}
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <div className="card p-4">
+                                                <p className="text-gray-400 text-sm mb-1">Total Portfolio</p>
+                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.totalValue)}</p>
+                                            </div>
+                                            <div className="card p-4">
+                                                <p className="text-gray-400 text-sm mb-1">Polymarket Value</p>
+                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.polymarketValue)}</p>
+                                            </div>
+                                            <div className="card p-4">
+                                                <p className="text-gray-400 text-sm mb-1">Invested</p>
+                                                <p className="text-2xl font-bold">{formatCurrency(portfolio.polymarketInvested)}</p>
+                                            </div>
+                                            <div className="card p-4">
+                                                <p className="text-gray-400 text-sm mb-1">P&L</p>
+                                                <p className={`text-2xl font-bold ${portfolio.pnl >= 0 ? 'positive' : 'negative'}`}>
+                                                    {formatCurrency(portfolio.pnl)}
+                                                </p>
+                                                <p className={`text-sm ${portfolio.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
+                                                    {formatPercent(portfolio.pnlPercent)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Positions List */}
+                                        <div className="card p-6">
+                                            <h2 className="text-xl font-bold mb-4">Active Positions</h2>
+                                            <div className="space-y-4">
+                                                {portfolio.positions?.map((pos, idx) => (
+                                                    <div key={idx} className="border-b border-gray-800 pb-4 last:border-0">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h3 className="font-medium text-lg">{pos.title}</h3>
+                                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                                                pos.position === 'Yes' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
+                                                            }`}>
+                                                                {pos.position}
+                                                            </span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                                            <div>
+                                                                <p className="text-gray-400">Entry Price</p>
+                                                                <p className="font-medium">{(pos.entryPrice * 100).toFixed(1)}¢</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-400">Current</p>
+                                                                <p className="font-medium">{(pos.currentPrice * 100).toFixed(1)}¢</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-400">P&L</p>
+                                                                <p className={`font-medium ${pos.pnl >= 0 ? 'positive' : 'negative'}`}>
+                                                                    {formatCurrency(pos.pnl)}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-gray-400">Return</p>
+                                                                <p className={`font-medium ${pos.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
+                                                                    {formatPercent(pos.pnlPercent)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Positions Tab */}
+                                {activeTab === 'positions' && (
+                                    <div className="card p-6">
+                                        <h2 className="text-xl font-bold mb-4">All Positions</h2>
+                                        <div className="space-y-4">
+                                            {portfolio.positions?.map((pos, idx) => (
+                                                <div key={idx} className="border border-gray-800 rounded-lg p-4">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <h3 className="font-medium">{pos.title}</h3>
+                                                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                                            pos.position === 'Yes' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
+                                                        }`}>
+                                                            {pos.position}
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                                        <div>
+                                                            <p className="text-gray-400">Entry</p>
+                                                            <p className="font-medium">{(pos.entryPrice * 100).toFixed(1)}¢</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-400">Current</p>
+                                                            <p className="font-medium">{(pos.currentPrice * 100).toFixed(1)}¢</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-400">P&L</p>
+                                                            <p className={`font-medium ${pos.pnl >= 0 ? 'positive' : 'negative'}`}>
+                                                                {formatCurrency(pos.pnl)}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-400">Return</p>
+                                                            <p className={`font-medium ${pos.pnlPercent >= 0 ? 'positive' : 'negative'}`}>
+                                                                {formatPercent(pos.pnlPercent)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Markets Tab */}
+                                {activeTab === 'markets' && (
+                                    <div className="card p-6">
+                                        <h2 className="text-xl font-bold mb-4">Markets</h2>
+                                        {markets.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {markets.map((market, idx) => (
+                                                    <div key={idx} className="border-b border-gray-800 pb-4">
+                                                        <h3 className="font-medium mb-2">{market.question}</h3>
+                                                        <div className="flex gap-4 text-sm">
+                                                            <span className="text-gray-400">Volume: {formatCurrency(market.volume)}</span>
+                                                            <span className="text-gray-400">Liquidity: {formatCurrency(market.liquidity)}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-400">No markets data available</p>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {/* News Tab */}
+                                {activeTab === 'news' && (
+                                    <div className="card p-6">
+                                        <h2 className="text-xl font-bold mb-4">Latest News</h2>
+                                        {news.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {news.map((item, idx) => (
+                                                    <div key={idx} className="border-b border-gray-800 pb-4">
+                                                        <h3 className="font-medium mb-1">{item.title}</h3>
+                                                        <p className="text-sm text-gray-400 mb-2">{item.source} • {new Date(item.published).toLocaleDateString()}</p>
+                                                        {item.signals && item.signals.length > 0 && (
+                                                            <div className="flex gap-2">
+                                                                {item.signals.map((signal, sidx) => (
+                                                                    <span key={sidx} className={`text-xs px-2 py-1 rounded ${
+                                                                        signal.type === 'positive' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'
+                                                                    }`}>
+                                                                        {signal.text}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-400">No news data available</p>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        
+                        {!portfolio && !loading && !error && (
+                            <div className="card p-12 text-center">
+                                <p className="text-gray-400 text-lg">Enter an Ethereum address or ENS name to view portfolio</p>
+                                <p className="text-gray-600 text-sm mt-2">Example: 0xa7d395faf5e0a77a8d42d68ea01d2336671e5f55</p>
+                            </div>
+                        )}
+                    </main>
+                    
+                    {/* Footer */}
+                    <footer className="border-t border-gray-800 p-6 mt-12">
+                        <div className="max-w-6xl mx-auto text-center text-gray-600 text-sm">
+                            <p>PolyScope - Polymarket Portfolio Tracker</p>
+                            <p className="mt-1">Data provided by Polymarket API</p>
+                        </div>
+                    </footer>
                 </div>
             );
         }
