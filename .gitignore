@@ -1,0 +1,75 @@
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# Backup files
+*.backup
+*.old
+*.bak
+*~
+
+# Test outputs
+test_results.json
+stress_test_report.json
+test_hardened_results.json
+alert_history.json
+test_alert_history.json
+
+# Local data (may contain sensitive info)
+positions.json
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.Python
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+*.local
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Vercel
+.vercel
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db

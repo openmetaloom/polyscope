@@ -1,0 +1,22 @@
+{
+  "name": "@polyscope/core",
+  "version": "2.0.0",
+  "description": "PolyScope shared types and utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "polyscope",
+    "types",
+    "utilities"
+  ],
+  "author": "PolyScope Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

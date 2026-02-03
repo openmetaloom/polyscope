@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-surface-border;
+  }
+  
+  body {
+    @apply bg-background text-text-primary antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted;
+  }
+  
+  /* Hide scrollbar for tabs */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-surface-border rounded-xl p-4 
+           transition-all duration-200 hover:border-surface-border/80;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-card hover:border-primary/20;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-black font-medium px-4 py-2 rounded-lg
+           hover:bg-primary-hover active:scale-[0.98] 
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-surface border border-surface-border text-text-primary 
+           font-medium px-4 py-2 rounded-lg
+           hover:bg-surface-hover hover:border-muted
+           transition-all duration-200;
+  }
+  
+  .input {
+    @apply bg-surface border border-surface-border rounded-lg px-4 py-2.5
+           text-text-primary placeholder:text-muted
+           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
+           transition-all duration-200;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply badge bg-primary/10 text-primary;
+  }
+  
+  .badge-success {
+    @apply badge bg-success/10 text-success;
+  }
+  
+  .badge-danger {
+    @apply badge bg-danger/10 text-danger;
+  }
+  
+  .badge-warning {
+    @apply badge bg-warning/10 text-warning;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary-hover bg-clip-text text-transparent;
+  }
+  
+  .shimmer {
+    @apply bg-gradient-to-r from-transparent via-white/5 to-transparent 
+           bg-[length:1000px_100%] animate-shimmer;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-surface/80 backdrop-blur-md;
+  }
+  
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(0, 208, 132, 0.15);
+  }
+  
+  .glow-primary-sm {
+    box-shadow: 0 0 10px rgba(0, 208, 132, 0.1);
+  }
+}

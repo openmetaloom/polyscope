@@ -1,0 +1,51 @@
+# PolyScope API Dockerfile
+# Production-ready Node.js container
+
+FROM node:20-alpine AS base
+
+# Install dependencies for native modules
+RUN apk add --no-cache libc6-compat curl
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY package*.json ./
+COPY packages/core/package*.json ./packages/core/
+COPY packages/api/package*.json ./packages/api/
+
+# Install dependencies
+RUN npm ci --only=production --workspace=packages/core --workspace=packages/api
+
+# Copy source code
+COPY packages/core ./packages/core
+COPY packages/api ./packages/api
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Security: Run as non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 polyscope
+
+WORKDIR /app
+
+# Copy dependencies and source from base
+COPY --from=base --chown=polyscope:nodejs /app/node_modules ./node_modules
+COPY --from=base --chown=polyscope:nodejs /app/packages ./packages
+COPY --from=base --chown=polyscope:nodejs /app/package*.json ./
+
+# Create data directory
+RUN mkdir -p /app/data && chown polyscope:nodejs /app/data
+
+# Switch to non-root user
+USER polyscope
+
+# Expose API port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/api/v1/health || exit 1
+
+# Start the API server
+CMD ["node", "packages/api/server.js"]

@@ -1,0 +1,62 @@
+# Vercel deployment exclusions
+# These files/directories will not be uploaded to Vercel
+
+# Environment files (secrets)
+.env
+.env.*
+
+# Development files
+.github/
+docs/
+scripts/
+*.md
+!README.md
+
+# Source code (only build output needed)
+packages/ui/src/
+packages/api/tests/
+packages/core/src/
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+test_*.js
+test_*.ts
+
+# Local data
+positions.json
+alert_history.json
+test_results.json
+stress_test_report.json
+
+# Backup files
+*.backup
+*.old
+*.bak
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Node modules (installed during build)
+node_modules/
+packages/*/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile.*
+.dockerignore

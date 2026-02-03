@@ -1,0 +1,763 @@
+openapi: 3.0.0
+info:
+  title: PolyScope API
+  description: |
+    PolyScope REST API - Analytics platform for Polymarket prediction markets.
+
+    ## Features
+    - Market discovery and search
+    - Portfolio tracking
+    - Position management
+    - Real-time price feeds
+    - Trading signals and news
+
+    ## Authentication
+    All endpoints except `/health` require an API key in the `X-API-Key` header.
+
+    ## Rate Limiting
+    - IP-based: 100 requests per minute
+    - API key-based: 1000 requests per minute
+
+    ## Response Format
+    All responses follow a consistent structure:
+    ```json
+    {
+      "success": true,
+      "data": { ... },
+      "meta": {
+        "requestId": "uuid",
+        "timestamp": "2026-02-03T14:00:00Z"
+      }
+    }
+    ```
+  version: 2.0.0
+  contact:
+    name: PolyScope Team
+    url: https://github.com/yourusername/polyscope
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api.polyscope.example.com/api/v1
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check API health and get system status
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /markets:
+    get:
+      summary: List markets
+      description: Get a list of markets with optional filtering
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of markets to return (max 100)
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of markets to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+            default: true
+        - name: closed
+          in: query
+          description: Include closed markets
+          schema:
+            type: boolean
+            default: false
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [crypto, politics, sports, tech, macro, entertainment, science]
+      responses:
+        '200':
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketsResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /markets/search:
+    get:
+      summary: Search markets
+      description: Search markets by keywords
+      parameters:
+        - name: q
+          in: query
+          description: Search query (min 2 characters)
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /markets/{slug}:
+    get:
+      summary: Get market details
+      description: Get detailed information about a specific market
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Market slug or identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Market details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /portfolio/{wallet}:
+    get:
+      summary: Get portfolio
+      description: Get full portfolio for a wallet including positions and activity
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          description: Ethereum wallet address (0x...)
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Portfolio data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /positions/{wallet}:
+    get:
+      summary: Get positions
+      description: Get Polymarket positions for a wallet
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          description: Ethereum wallet address (0x...)
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Positions data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /positions/{id}/alert:
+    get:
+      summary: Get alert configuration
+      description: Get alert configuration for a position
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Position ID
+          schema:
+            type: string
+        - name: wallet
+          in: query
+          required: true
+          description: Wallet address
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertConfigResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Configure alerts
+      description: Configure alerts for a position
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Position ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertConfigRequest'
+      responses:
+        '200':
+          description: Alert configuration saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertConfigResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      summary: Delete alert configuration
+      description: Delete alert configuration for a position
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Position ID
+          schema:
+            type: string
+        - name: wallet
+          in: query
+          required: true
+          description: Wallet address
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert configuration deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+
+  /prices/{tokenId}:
+    get:
+      summary: Get token price
+      description: Get live price for a specific token
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          description: Token ID
+          schema:
+            type: string
+        - name: side
+          in: query
+          description: Price side (buy or sell)
+          schema:
+            type: string
+            enum: [buy, sell]
+            default: buy
+      responses:
+        '200':
+          description: Token price
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /news:
+    get:
+      summary: Get news
+      description: Get latest news with trading signals
+      parameters:
+        - name: limit
+          in: query
+          description: Number of articles to return
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [crypto, politics, sports, tech, macro, entertainment, science]
+        - name: minConfidence
+          in: query
+          description: Minimum confidence threshold (0-1)
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+        - name: minImpact
+          in: query
+          description: Minimum impact level
+          schema:
+            type: string
+            enum: [low, medium, high]
+            default: low
+      responses:
+        '200':
+          description: News articles with signals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /news/signals:
+    get:
+      summary: Get aggregated signals
+      description: Get aggregated trading signals from news
+      parameters:
+        - name: market
+          in: query
+          description: Filter by specific market
+          schema:
+            type: string
+        - name: timeframe
+          in: query
+          description: Timeframe for signals
+          schema:
+            type: string
+            default: 24h
+      responses:
+        '200':
+          description: Aggregated signals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalsResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: BAD_REQUEST
+              message: Invalid parameters
+            meta:
+              requestId: abc-123
+              timestamp: "2026-02-03T14:00:00Z"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+            meta:
+              requestId: abc-123
+              timestamp: "2026-02-03T14:00:00Z"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retry
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Too many requests
+              details:
+                retryAfter: 60
+            meta:
+              requestId: abc-123
+              timestamp: "2026-02-03T14:00:00Z"
+
+  schemas:
+    BaseResponse:
+      type: object
+      required:
+        - success
+        - meta
+      properties:
+        success:
+          type: boolean
+        meta:
+          type: object
+          properties:
+            requestId:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+            cached:
+              type: boolean
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            error:
+              type: object
+              required:
+                - code
+                - message
+              properties:
+                code:
+                  type: string
+                message:
+                  type: string
+                details:
+                  type: object
+
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, degraded, unhealthy]
+                version:
+                  type: string
+                environment:
+                  type: string
+                uptime:
+                  type: number
+                circuitBreakers:
+                  type: object
+
+    Market:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        question:
+          type: string
+        category:
+          type: string
+        prices:
+          type: array
+          items:
+            type: number
+        volume:
+          type: object
+          properties:
+            total:
+              type: number
+            '24h':
+              type: number
+        liquidity:
+          type: number
+        status:
+          type: object
+          properties:
+            active:
+              type: boolean
+            closed:
+              type: boolean
+            acceptingOrders:
+              type: boolean
+        endDate:
+          type: string
+          format: date-time
+
+    MarketsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                markets:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Market'
+                pagination:
+                  type: object
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    total:
+                      type: integer
+                    hasMore:
+                      type: boolean
+
+    SearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Market'
+                query:
+                  type: string
+                matched:
+                  type: boolean
+                suggestions:
+                  type: array
+                  items:
+                    type: object
+
+    MarketDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: integer
+                question:
+                  type: string
+                slug:
+                  type: string
+                prices:
+                  type: object
+                volume:
+                  type: object
+                liquidity:
+                  type: object
+                status:
+                  type: object
+                resolution:
+                  type: object
+
+    PortfolioResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                wallet:
+                  type: string
+                summary:
+                  type: object
+                  properties:
+                    totalPositions:
+                      type: integer
+                    totalMarkets:
+                      type: integer
+                    totalValue:
+                      type: string
+                    totalUnrealizedPnl:
+                      type: string
+                positions:
+                  type: array
+                recentActivity:
+                  type: array
+
+    PositionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                wallet:
+                  type: string
+                summary:
+                  type: object
+                positions:
+                  type: array
+                truncated:
+                  type: boolean
+
+    AlertConfigRequest:
+      type: object
+      required:
+        - wallet
+      properties:
+        wallet:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        enabled:
+          type: boolean
+        targetPrice:
+          type: number
+        priceChangePct:
+          type: number
+        direction:
+          type: string
+          enum: [up, down, both]
+        takeProfit:
+          type: number
+        stopLoss:
+          type: number
+        trailingStop:
+          type: number
+        beforeResolution:
+          type: integer
+        reminderFrequency:
+          type: string
+          enum: [daily, weekly, once]
+        webhookUrl:
+          type: string
+          format: uri
+        email:
+          type: string
+          format: email
+
+    AlertConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                config:
+                  type: object
+
+    DeleteResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                deleted:
+                  type: boolean
+
+    PriceResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                tokenId:
+                  type: string
+                side:
+                  type: string
+                price:
+                  type: number
+                timestamp:
+                  type: string
+
+    NewsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                summary:
+                  type: object
+                articles:
+                  type: array
+                insights:
+                  type: array
+
+    SignalsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                aggregate:
+                  type: object
+                  properties:
+                    sentiment:
+                      type: string
+                    confidence:
+                      type: string
+                    signalCount:
+                      type: integer
+                topMarkets:
+                  type: array
