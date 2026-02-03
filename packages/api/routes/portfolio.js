@@ -7,8 +7,8 @@
 
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const PolymarketAPI = require('../../polymarket_api_hardened');
-const LivePositionTracker = require('../../live_position_tracker');
+const PolymarketAPI = require('../polymarket_api_hardened');
+const LivePositionTracker = require('../live_position_tracker');
 const { cacheMiddleware } = require('../middleware/cache');
 
 const api = new PolymarketAPI();

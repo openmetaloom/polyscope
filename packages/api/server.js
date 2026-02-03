@@ -30,6 +30,7 @@ const marketsRouter = require('./routes/markets');
 const portfolioRouter = require('./routes/portfolio');
 const positionsRouter = require('./routes/positions');
 const newsRouter = require('./routes/news');
+const resolveRouter = require('./routes/resolve');
 
 // Create Express app
 const app = express();
@@ -155,6 +156,7 @@ app.use('/api/v1/prices', (req, res, next) => {
   next('route');
 });
 app.use('/api/v1/news', newsRouter);
+app.use('/api/v1/resolve', resolveRouter);
 
 // 404 handler
 app.use((req, res) => {

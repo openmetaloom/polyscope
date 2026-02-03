@@ -1,4 +1,4 @@
-import { Droplets, BarChart3, Clock } from 'lucide-react';
+import { Droplets, BarChart3, Clock, ExternalLink } from 'lucide-react';
 import type { Market } from '@/types';
 
 interface MarketCardProps {
@@ -15,16 +15,42 @@ export default function MarketCard({ market, onClick }: MarketCardProps) {
     (new Date(market.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
 
+  // Get Polymarket URL
+  const marketUrl = market.slug 
+    ? `https://polymarket.com/event/${market.slug}`
+    : `https://polymarket.com/event/${market.id}`;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger onClick if clicking the external link
+    if ((e.target as HTMLElement).closest('.external-link')) {
+      return;
+    }
+    onClick?.();
+  };
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleCardClick}
       className={`
-        card card-hover cursor-pointer group
+        card card-hover cursor-pointer group relative
         ${!isOpen ? 'opacity-75' : ''}
       `}
     >
+      {/* External Link Button */}
+      <a
+        href={marketUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="external-link absolute top-3 right-3 p-2 opacity-0 group-hover:opacity-100 
+                   hover:bg-surface-hover rounded-lg transition-all duration-200 z-10"
+        title="View on Polymarket"
+      >
+        <ExternalLink className="w-4 h-4 text-muted hover:text-primary" />
+      </a>
+
       {/* Header */}
-      <div className="flex items-start gap-3 mb-4">
+      <div className="flex items-start gap-3 mb-4 pr-8">
         {market.imageUrl ? (
           <img
             src={market.imageUrl}

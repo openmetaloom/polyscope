@@ -26,6 +26,7 @@ export interface Position {
   id: string;
   marketId: string;
   marketTitle: string;
+  marketSlug?: string;
   outcome: 'YES' | 'NO';
   entryPrice: number;
   currentPrice: number;
@@ -38,11 +39,13 @@ export interface Position {
   tokenId: string;
   imageUrl?: string;
   category?: string;
+  keywords?: string[];
 }
 
 export interface Market {
   id: string;
   title: string;
+  slug?: string;
   description?: string;
   yesPrice: number;
   noPrice: number;

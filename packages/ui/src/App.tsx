@@ -51,7 +51,7 @@ function App() {
       case 'markets':
         return <MarketsView />;
       case 'news':
-        return <NewsView />;
+        return <NewsView address={address} />;
       default:
         return null;
     }

@@ -11,7 +11,7 @@
 
 const express = require('express');
 const router = express.Router();
-const PolymarketAPI = require('../../polymarket_api_hardened');
+const PolymarketAPI = require('../polymarket_api_hardened');
 const { cacheMiddleware } = require('../middleware/cache');
 
 const api = new PolymarketAPI();

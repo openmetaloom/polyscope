@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { 
   TrendingUp, TrendingDown, Clock, Target, 
-  AlertTriangle, XCircle
+  AlertTriangle, XCircle, ExternalLink
 } from 'lucide-react';
 import { useMarketPrices } from '@/hooks/useApi';
 import type { Position } from '@/types';
@@ -30,6 +30,18 @@ export default function PositionCard({ position }: PositionCardProps) {
 
   const status = statusConfig[position.status];
   const StatusIcon = status.icon;
+
+  // Get Polymarket URL
+  const marketUrl = useMemo(() => {
+    if (position.marketSlug) {
+      return `https://polymarket.com/event/${position.marketSlug}`;
+    }
+    // Fallback: try to construct from marketId
+    if (position.marketId) {
+      return `https://polymarket.com/event/${position.marketId}`;
+    }
+    return null;
+  }, [position.marketSlug, position.marketId]);
 
   // Calculate current value based on live price
   const liveValue = useMemo(() => {
@@ -72,7 +84,19 @@ export default function PositionCard({ position }: PositionCardProps) {
           )}
           <div className="min-w-0">
             <h3 className="font-medium text-text-primary text-sm line-clamp-2">
-              {position.marketTitle}
+              {marketUrl ? (
+                <a
+                  href={marketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors inline-flex items-center gap-1 group"
+                >
+                  {position.marketTitle}
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              ) : (
+                position.marketTitle
+              )}
             </h3>
             {position.category && (
               <span className="text-xs text-text-tertiary">{position.category}</span>
