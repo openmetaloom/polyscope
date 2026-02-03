@@ -133,95 +133,92 @@
             const p = portfolioData;
             const pnlClass = p.pnl >= 0 ? 'positive' : 'negative';
             
-            document.getElementById('portfolio-tab').innerHTML = \`
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="card p-3">
-                        <p class="text-gray-400 text-xs">Total</p>
-                        <p class="text-xl font-bold">\${formatCurrency(p.totalValue)}</p>
-                    </div>
-                    <div class="card p-3">
-                        <p class="text-gray-400 text-xs">Polymarket</p>
-                        <p class="text-xl font-bold">\${formatCurrency(p.polymarketValue)}</p>
-                    </div>
-                    <div class="card p-3">
-                        <p class="text-gray-400 text-xs">Invested</p>
-                        <p class="text-xl font-bold">\${formatCurrency(p.polymarketInvested)}</p>
-                    </div>
-                    <div class="card p-3">
-                        <p class="text-gray-400 text-xs">P&L</p>
-                        <p class="text-xl font-bold \${pnlClass}">\${formatCurrency(p.pnl)}</p>
-                        <p class="text-sm \${pnlClass}">\${p.pnlPercent.toFixed(1)}%</p>
-                    </div>
-                </div>
-                <div class="card p-4">
-                    <h3 class="font-bold mb-3">Positions</h3>
-                    <div class="space-y-3">
-                        \${p.positions.map(pos => \`
-                            <div class="border-b border-gray-800 pb-3 last:border-0">
-                                <a href="https://polymarket.com/event/\${pos.slug || ''}" target="_blank" class="market-link font-medium block mb-1">
-                                    \${pos.title}
-                                </a>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-400">\${pos.position}</span>
-                                    <span class="\${pos.pnl >= 0 ? 'positive' : 'negative'}">
-                                        \${formatCurrency(pos.pnl)}
-                                    </span>
-                                </div>
-                            </div>
-                        \`).join('')}
-                    </div>
-                </div>
-            \`;
+            let html = '<div class="grid grid-cols-2 gap-3 mb-4">';
+            html += '<div class="card p-3"><p class="text-gray-400 text-xs">Total</p><p class="text-xl font-bold">' + formatCurrency(p.totalValue) + '</p></div>';
+            html += '<div class="card p-3"><p class="text-gray-400 text-xs">Polymarket</p><p class="text-xl font-bold">' + formatCurrency(p.polymarketValue) + '</p></div>';
+            html += '<div class="card p-3"><p class="text-gray-400 text-xs">Invested</p><p class="text-xl font-bold">' + formatCurrency(p.polymarketInvested) + '</p></div>';
+            html += '<div class="card p-3"><p class="text-gray-400 text-xs">P&L</p><p class="text-xl font-bold ' + pnlClass + '">' + formatCurrency(p.pnl) + '</p><p class="text-sm ' + pnlClass + '">' + p.pnlPercent.toFixed(1) + '%</p></div>';
+            html += '</div>';
+            
+            html += '<div class="card p-4"><h3 class="font-bold mb-3">Positions</h3><div class="space-y-3">';
+            
+            p.positions.forEach(function(pos) {
+                const posPnlClass = pos.pnl >= 0 ? 'positive' : 'negative';
+                html += '<div class="border-b border-gray-800 pb-3 last:border-0">';
+                html += '<a href="https://polymarket.com/event/' + (pos.slug || '') + '" target="_blank" class="market-link font-medium block mb-1">' + pos.title + '</a>';
+                html += '<div class="flex justify-between text-sm">';
+                html += '<span class="text-gray-400">' + pos.position + '</span>';
+                html += '<span class="' + posPnlClass + '">' + formatCurrency(pos.pnl) + '</span>';
+                html += '</div></div>';
+            });
+            
+            html += '</div></div>';
+            document.getElementById('portfolio-tab').innerHTML = html;
         }
         
         function renderPositions() {
             if (!portfolioData) return;
-            document.getElementById('positions-tab').innerHTML = \`
-                <div class="card p-4 space-y-4">
-                    \${portfolioData.positions.map(pos => \`
-                        <div class="border-b border-gray-800 pb-4 last:border-0">
-                            <a href="https://polymarket.com/event/\${pos.slug || ''}" target="_blank" class="market-link font-medium block mb-2">
-                                \${pos.title}
-                            </a>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div><span class="text-gray-400">Position:</span> \${pos.position}</div>
-                                <div><span class="text-gray-400">Entry:</span> \${(pos.entryPrice * 100).toFixed(1)}¢</div>
-                                <div><span class="text-gray-400">Current:</span> \${(pos.currentPrice * 100).toFixed(1)}¢</div>
-                                <div class="\${pos.pnl >= 0 ? 'positive' : 'negative'}">
-                                    <span class="text-gray-400">P&L:</span> \${formatCurrency(pos.pnl)}
-                                </div>
-                            </div>
-                        </div>
-                    \`).join('')}
-                </div>
-            \`;
+            let html = '<div class="card p-4 space-y-4">';
+            
+            portfolioData.positions.forEach(function(pos) {
+                const posPnlClass = pos.pnl >= 0 ? 'positive' : 'negative';
+                html += '<div class="border-b border-gray-800 pb-4 last:border-0">';
+                html += '<a href="https://polymarket.com/event/' + (pos.slug || '') + '" target="_blank" class="market-link font-medium block mb-2">' + pos.title + '</a>';
+                html += '<div class="grid grid-cols-2 gap-2 text-sm">';
+                html += '<div><span class="text-gray-400">Position:</span> ' + pos.position + '</div>';
+                html += '<div><span class="text-gray-400">Entry:</span> ' + (pos.entryPrice * 100).toFixed(1) + '¢</div>';
+                html += '<div><span class="text-gray-400">Current:</span> ' + (pos.currentPrice * 100).toFixed(1) + '¢</div>';
+                html += '<div class="' + posPnlClass + '"><span class="text-gray-400">P&L:</span> ' + formatCurrency(pos.pnl) + '</div>';
+                html += '</div></div>';
+            });
+            
+            html += '</div>';
+            document.getElementById('positions-tab').innerHTML = html;
         }
         
         function renderMarkets() {
-            document.getElementById('markets-tab').innerHTML = \`
-                <div class="card p-4 space-y-4">
-                    \${marketsData.map(m => \`
-                        <div class="border-b border-gray-800 pb-4 last:border-0">
-                            <p class="font-medium mb-2">\${m.question}</p>
-                            <div class="flex justify-between text-sm text-gray-400">
-                                <span>Vol: \${formatCurrency(m.volume)}</span>
-                                <span>Liq: \${formatCurrency(m.liquidity)}</span>
-                            </div>
-                            <div class="flex gap-4 mt-2 text-sm">
-                                <span class="positive">Yes: \${(m.yesPrice * 100).toFixed(1)}¢</span>
-                                <span class="negative">No: \${(m.noPrice * 100).toFixed(1)}¢</span>
-                            </div>
-                        </div>
-                    \`).join('')}
-                </div>
-            \`;
+            let html = '<div class="card p-4 space-y-4">';
+            
+            marketsData.forEach(function(m) {
+                html += '<div class="border-b border-gray-800 pb-4 last:border-0">';
+                html += '<p class="font-medium mb-2">' + m.question + '</p>';
+                html += '<div class="flex justify-between text-sm text-gray-400">';
+                html += '<span>Vol: ' + formatCurrency(m.volume) + '</span>';
+                html += '<span>Liq: ' + formatCurrency(m.liquidity) + '</span>';
+                html += '</div>';
+                html += '<div class="flex gap-4 mt-2 text-sm">';
+                html += '<span class="positive">Yes: ' + (m.yesPrice * 100).toFixed(1) + '¢</span>';
+                html += '<span class="negative">No: ' + (m.noPrice * 100).toFixed(1) + '¢</span>';
+                html += '</div></div>';
+            });
+            
+            html += '</div>';
+            document.getElementById('markets-tab').innerHTML = html;
+        }
+        
+        function renderNews() {
+            const relevantNews = getRelevantNews();
+            let html = '<div class="card p-4 space-y-4">';
+            
+            relevantNews.forEach(function(item) {
+                const relevantClass = item.isRelevant ? 'border-l-2 border-green-500 pl-3' : 'opacity-70';
+                const badge = item.isRelevant ? '<span class="text-xs text-green-400">RELEVANT</span>' : '';
+                html += '<div class="' + relevantClass + '">';
+                html += '<p class="font-medium text-sm mb-1">' + item.title + '</p>';
+                html += '<p class="text-xs text-gray-400">' + item.source + '</p>';
+                html += badge;
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            document.getElementById('news-tab').innerHTML = html;
         }
         
         function getRelevantNews() {
             if (!portfolioData || !portfolioData.positions) return newsData;
             
             const keywords = [];
-            portfolioData.positions.forEach(p => {
+            portfolioData.positions.forEach(function(p) {
                 const title = p.title.toLowerCase();
                 if (title.includes('trump')) keywords.push('trump');
                 if (title.includes('biden')) keywords.push('biden');
@@ -230,41 +227,29 @@
                 if (title.includes('crypto') || title.includes('bitcoin')) keywords.push('crypto');
             });
             
-            return newsData.map(item => {
+            return newsData.map(function(item) {
                 const title = item.title.toLowerCase();
-                const isRelevant = keywords.some(k => title.includes(k));
-                return {...item, isRelevant};
-            }).sort((a, b) => (b.isRelevant ? 1 : 0) - (a.isRelevant ? 1 : 0));
-        }
-        
-        function renderNews() {
-            const relevantNews = getRelevantNews();
-            document.getElementById('news-tab').innerHTML = \`
-                <div class="card p-4 space-y-4">
-                    \${relevantNews.map(item => \`
-                        <div class="\${item.isRelevant ? 'border-l-2 border-green-500 pl-3' : 'opacity-70'}">
-                            <p class="font-medium text-sm mb-1">\${item.title}</p>
-                            <p class="text-xs text-gray-400">\${item.source}</p>
-                            \${item.isRelevant ? '<span class="text-xs text-green-400">RELEVANT</span>' : ''}
-                        </div>
-                    \`).join('')}
-                </div>
-            \`;
+                const isRelevant = keywords.some(function(k) { return title.includes(k); });
+                return {title: item.title, source: item.source, isRelevant: isRelevant};
+            }).sort(function(a, b) {
+                return (b.isRelevant ? 1 : 0) - (a.isRelevant ? 1 : 0);
+            });
         }
         
         function showTab(tab) {
-            ['portfolio', 'positions', 'markets', 'news'].forEach(t => {
+            ['portfolio', 'positions', 'markets', 'news'].forEach(function(t) {
                 document.getElementById(t + '-tab').classList.add('hidden');
-                document.getElementById('tab-' + t).classList.remove('tab-active');
-                document.getElementById('tab-' + t).classList.add('text-gray-400');
+                const btn = document.getElementById('tab-' + t);
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-gray-400');
             });
             document.getElementById(tab + '-tab').classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('tab-active');
-            document.getElementById('tab-' + tab).classList.remove('text-gray-400');
+            const activeBtn = document.getElementById('tab-' + tab);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-gray-400');
         }
         
-        // Allow Enter key
-        document.getElementById('addressInput')?.addEventListener('keypress', (e) => {
+        document.getElementById('addressInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') loadPortfolio();
         });
     </script>
