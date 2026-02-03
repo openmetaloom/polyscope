@@ -1,0 +1,15 @@
+{
+  "name": "polyscope-api",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1",
+    "compression": "^1.7.4",
+    "node-cache": "^5.1.2",
+    "https": "^1.0.0"
+  }
+}
