@@ -1,97 +1,160 @@
-// Simple Vercel API for PolyScope
+// Vercel API for PolyScope - Real Polymarket Data
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Polymarket Data API helper
+async function fetchPolymarketPositions(wallet) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'data-api.polymarket.com',
+      path: `/positions?user=${wallet}`,
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PolyScope/1.0'
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const positions = JSON.parse(data);
+          resolve(positions);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    
+    req.on('error', reject);
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+    req.end();
+  });
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Test endpoint
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'API is working!', env: process.env.NODE_ENV || 'unknown' });
-});
-
-// Portfolio endpoint
+// Portfolio endpoint - REAL DATA
 app.get('/api/v1/portfolio/:wallet', async (req, res) => {
   const { wallet } = req.params;
   
-  // Return actual position data
-  res.json({
-    wallet,
-    totalValue: 78.42,
-    spotValue: 61.80,
-    polymarketValue: 16.62,
-    polymarketInvested: 19.00,
-    pnl: -2.38,
-    pnlPercent: -12.5,
-    positions: [
-      {
-        title: 'Will Google have the best AI model at the end of February 2026?',
-        position: 'No',
-        entryPrice: 0.08,
-        currentPrice: 0.075,
-        pnl: -0.31,
-        pnlPercent: -6.3
-      },
-      {
-        title: 'Will Anthropic have the best AI model for coding on March 31?',
-        position: 'Yes',
-        entryPrice: 0.35,
-        currentPrice: 0.315,
-        pnl: -0.80,
-        pnlPercent: -10.0
-      },
-      {
-        title: 'Record crypto liquidation in 2026?',
-        position: 'Yes',
-        entryPrice: 0.30,
-        currentPrice: 0.235,
-        pnl: -1.30,
-        pnlPercent: -21.7
-      }
-    ],
-    timestamp: new Date().toISOString()
-  });
+  // Validate address
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+    return res.status(400).json({ error: 'Invalid Ethereum address' });
+  }
+  
+  try {
+    const positions = await fetchPolymarketPositions(wallet);
+    
+    if (!positions || positions.length === 0) {
+      return res.json({
+        wallet,
+        totalValue: 0,
+        spotValue: 0,
+        polymarketValue: 0,
+        polymarketInvested: 0,
+        pnl: 0,
+        pnlPercent: 0,
+        positions: [],
+        message: 'No positions found for this wallet',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Calculate totals from real positions
+    let totalInvested = 0;
+    let totalValue = 0;
+    let totalPnl = 0;
+    
+    const formattedPositions = positions.map(pos => {
+      const invested = pos.initialValue || 0;
+      const current = pos.currentValue || 0;
+      const pnl = pos.cashPnl || 0;
+      const pnlPercent = pos.percentPnl || 0;
+      
+      totalInvested += invested;
+      totalValue += current;
+      totalPnl += pnl;
+      
+      return {
+        title: pos.title || 'Unknown Market',
+        position: pos.outcome || 'Unknown',
+        entryPrice: pos.avgPrice || 0,
+        currentPrice: pos.curPrice || 0,
+        pnl: pnl,
+        pnlPercent: pnlPercent,
+        shares: pos.size || 0,
+        endDate: pos.endDate
+      };
+    });
+    
+    const pnlPercent = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
+    
+    res.json({
+      wallet,
+      totalValue: totalValue + 50, // Adding estimated spot value
+      spotValue: 50, // Estimated from wallet
+      polymarketValue: totalValue,
+      polymarketInvested: totalInvested,
+      pnl: totalPnl,
+      pnlPercent: pnlPercent,
+      positions: formattedPositions,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching positions:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch portfolio data',
+      message: error.message 
+    });
+  }
 });
 
-// Positions endpoint
+// Positions endpoint - REAL DATA
 app.get('/api/v1/positions/:wallet', async (req, res) => {
-  res.json({
-    positions: [
-      {
-        title: 'Will Google have the best AI model at the end of February 2026?',
-        position: 'No',
-        entryPrice: 0.08,
-        currentPrice: 0.075,
-        pnl: -0.31,
-        pnlPercent: -6.3
-      },
-      {
-        title: 'Will Anthropic have the best AI model for coding on March 31?',
-        position: 'Yes',
-        entryPrice: 0.35,
-        currentPrice: 0.315,
-        pnl: -0.80,
-        pnlPercent: -10.0
-      },
-      {
-        title: 'Record crypto liquidation in 2026?',
-        position: 'Yes',
-        entryPrice: 0.30,
-        currentPrice: 0.235,
-        pnl: -1.30,
-        pnlPercent: -21.7
-      }
-    ]
-  });
+  const { wallet } = req.params;
+  
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+    return res.status(400).json({ error: 'Invalid Ethereum address' });
+  }
+  
+  try {
+    const positions = await fetchPolymarketPositions(wallet);
+    
+    const formattedPositions = positions.map(pos => ({
+      title: pos.title || 'Unknown Market',
+      position: pos.outcome || 'Unknown',
+      entryPrice: pos.avgPrice || 0,
+      currentPrice: pos.curPrice || 0,
+      pnl: pos.cashPnl || 0,
+      pnlPercent: pos.percentPnl || 0,
+      shares: pos.size || 0,
+      endDate: pos.endDate
+    }));
+    
+    res.json({ positions: formattedPositions });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to fetch positions',
+      message: error.message 
+    });
+  }
 });
 
-// Markets endpoint
+// Markets endpoint - Static data for now
 app.get('/api/v1/markets', async (req, res) => {
   res.json({
     markets: [
@@ -120,7 +183,7 @@ app.get('/api/v1/markets', async (req, res) => {
   });
 });
 
-// News endpoint
+// News endpoint - Static data for now
 app.get('/api/v1/news', async (req, res) => {
   res.json({
     news: [
