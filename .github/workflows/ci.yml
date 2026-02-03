@@ -57,7 +57,8 @@ jobs:
     - name: Run API tests
       run: npm test -w packages/api
       env:
-        API_KEYS: test-api-key-ci-only-32chars
+        API_KEY: test-api-key-ci-only-32chars
+        TEST_WALLET_ADDRESS: 0xa7d395faf5e0a77a8d42d68ea01d2336671e5f55
         REDIS_URL: redis://localhost:6379
     
     - name: Upload coverage
