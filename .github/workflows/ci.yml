@@ -22,17 +22,14 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    container: node:20
     services:
       redis:
-        image: redis:7-alpine
+        image: redis
         ports:
           - 6379:6379
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
       - run: npm ci
       - run: npm test -w packages/api
         env:
