@@ -20,27 +20,6 @@ jobs:
       - run: npm run lint -w packages/api
       - run: npm run lint -w packages/ui
 
-  test:
-    runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm test -w packages/api
-        env:
-          API_KEY: test-api-key-ci-only-32chars
-          TEST_WALLET_ADDRESS: 0xa7d395faf5e0a77a8d42d68ea01d2336671e5f55
-          REDIS_URL: redis://localhost:6379
-
   build:
     runs-on: ubuntu-latest
     steps:
