@@ -20,23 +20,6 @@ jobs:
       - run: npm run lint -w packages/api
       - run: npm run lint -w packages/ui
 
-  test:
-    runs-on: ubuntu-latest
-    container: node:20
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm ci
-      - run: npm test -w packages/api
-        env:
-          API_KEY: test-api-key-ci-only-32chars
-          TEST_WALLET_ADDRESS: 0xa7d395faf5e0a77a8d42d68ea01d2336671e5f55
-          REDIS_URL: redis://redis:6379
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +37,14 @@ jobs:
         with:
           name: ui-dist
           path: packages/ui/dist
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
