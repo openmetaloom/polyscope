@@ -622,7 +622,7 @@ class PolymarketAPI extends EventEmitter {
       const prices = JSON.parse(market.outcomePrices || '[0.5, 0.5]');
       yesPrice = parseFloat(prices[0]);
       noPrice = parseFloat(prices[1]);
-    } catch (e) {}
+    } catch (e) { /* ignore parse errors, use defaults */ }
 
     let orderBookData = null;
     if (market.clobTokenIds) {
@@ -635,7 +635,7 @@ class PolymarketAPI extends EventEmitter {
           ]);
           orderBookData = { yes: yesBook, no: noBook };
         }
-      } catch (e) {}
+      } catch (e) { /* ignore orderbook fetch errors */ }
     }
 
     return {

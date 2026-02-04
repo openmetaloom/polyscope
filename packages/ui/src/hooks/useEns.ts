@@ -15,7 +15,7 @@ export function useEnsResolution() {
     
     try {
       // Check if it's already an address
-      if ((ethers as any).isAddress(trimmedInput)) {
+      if (ethers.isAddress(trimmedInput)) {
         const normalizedAddress = ethers.getAddress(trimmedInput);
         
         // Try to reverse resolve ENS
@@ -89,8 +89,8 @@ export function useEnsResolution() {
 
   const validateAddress = useCallback((input: string): boolean => {
     const trimmedInput: string = input.trim();
-    if ((ethers as any).isAddress(trimmedInput)) return true;
-    if ((trimmedInput as string).toLowerCase().endsWith('.eth')) return true;
+    if (ethers.isAddress(trimmedInput)) return true;
+    if (trimmedInput.toLowerCase().endsWith('.eth')) return true;
     return false;
   }, []);
 
